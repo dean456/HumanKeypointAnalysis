@@ -4,41 +4,46 @@ import json
 
 class OpenposeIO:
     
-    def __init__(self,datapath,jsonfoldername="json"):
-        """
-        Constructor:
-        
-        """
+    def __init__(self,datapath,jsonfoldername="jsons"):
         self.datapath=datapath # root path
-        self.datafolders=os.listdir(self.datapath)
-        self.subjects=[]
+        self.jsonfoldername=jsonfoldername
+        self.folders=os.listdir(self.datapath)
         i=0
         while i>-1:
-            if i<len(self.datafolders):
-                print(self.datafolders[i])
-                if os.path.isdir(os.path.join(self.datapath,self.datafolders[i])):
-                    folderList=os.listdir()
-                    if jsonfoldername not in folderList:
-                        del self.datafolders[i]
+            if i<len(self.folders):
+                if os.path.isdir(os.path.join(self.datapath,self.folders[i])):
+                    subfolderList=os.listdir(os.path.join(self.datapath,self.folders[i]))
+                    if jsonfoldername not in subfolderList:
+                        del self.folders[i]
                     else:                    
-                        print(self.datafolders[i])
-                        self.subjects.append(self.datafolders[i])
                         i+=1
                 else:
-                    del self.datafolders[i]
+                    del self.folders[i]
             else:
                 i=-1
-        self.subjectNo=len(self.subjects)
+        self.folderNum=len(self.folders)
                
     def extractKeypoints(self,subject):
-        jsonfolderpath=os.path.join(self.datapath,subject,"jsons")
+        jsonfolderpath=os.path.join(self.datapath,subject,self.jsonfoldername)
         jsons=os.listdir(jsonfolderpath)
         k = Keypoints()
         for j in range(0,len(jsons)):
-            f = open(os.path.join(jsonfolderpath,jsons[j]))
+            if   j < 10:          index = "00000000000"+str(j)
+            elif j < 100:         index = "0000000000"+str(j)
+            elif j < 1000:        index = "000000000"+str(j)
+            elif j < 10000:       index = "00000000"+str(j)
+            elif j < 100000:      index = "0000000"+str(j)
+            elif j < 1000000:     index = "000000"+str(j)
+            elif j < 10000000:    index = "00000"+str(j)
+            elif j < 100000000:   index = "0000"+str(j)
+            elif j < 1000000000:  index = "000"+str(j)
+            elif j < 10000000000: index = "00"+str(j)
+            elif j < 100000000000:index = "0"+str(j)
+            else:                 index = +str(j)          
+            f = open(os.path.join(self.datapath,subject,self.jsonfoldername,subject+"_"+index+"_keypoints.json"))
             data = json.load(f) # DateType: Dictionary  
             for h in data['part_candidates']:
-                k.Frames.append(j)
+                k.Frames.append(index)
                 k.Nose.append(h['0'])        
                 k.Neck.append(h['1'])
                 k.RShoulder.append(h['2'])
