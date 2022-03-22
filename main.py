@@ -8,73 +8,54 @@ import platform
 """
 #Original videofolder: collect videonames
 #videopath="/media/public/data/shoulderpain/video/"
-datapath="/home/kang/Documents/Aitools/shoulderpain/test"
+datapath="/media/public/data/shoulderpain/video"
 op = OpenposeIO(datapath,"jsons") #default json folder is videoname/jsons if no input
 framerate=30 # 30Hz
 timewindow=30
-"""
-subjectname=op.folders[3]
-k=op.extractKeypoints(subjectname)
-
-abd=Kinematics()
-abd.getMotionCorView(k.LElbow,k.LShoulder,k.MidHip,k.Neck,k.Frames,framerate)
-abdAstats = Stats(abd.motion["angle"])
-abdAstats.getMovStat(timewindow,framerate)
-
-flex=Kinematics()
-flex.getMotionNonCorView(k.LElbow,k.LShoulder,k.Frames,framerate)
-flexAstats = Stats(flex.motion["angle"])
-flexAstats.getMovStat(timewindow,framerate)
-
-p=Plots.getMyPlot(1,"Abduction","Angle","Frames","Degree",subjectname,abd.motion["time"][300:len(abd.motion["time"])-300],abd.motion["angle"][300:len(abd.motion["time"])-300],'k-')
-p=Plots.getMyPlot(2,"Flexion","Angle","Frames","Degree",subjectname,abd.motion["time"][300:len(flex.motion["time"])-300],flex.motion["angle"][300:len(flex.motion["time"])-300],'k-')
-"""
-
 
 X=[]
 y=[]
 
 for i in range(0,len(op.folders)):
-    """
-    if (op.folders[i][0]=="A"):
-        y.append(1)
-    elif (op.folders[i][0]=="R"):
-        y.append(2)
-    elif (op.folders[i][0]=="H"):
-        y.append(0)
-    """
+       
     subjectname=op.folders[i]
+    print(subjectname)
     k=op.extractKeypoints(subjectname)
-    if (subjectname[13]=="R"):
+    if (subjectname[0]=="A"):
+        y.append(1)
+    elif (subjectname[0]=="R"):
+        y.append(2)
+    elif (subjectname[0]=="H"):
         y.append(0)
-        abd=Kinematics()
-        abd.getMotionCorView(k.RElbow,k.RShoulder,k.MidHip,k.Neck,k.Frames,framerate)
-        abdAstats = Stats(abd.motion["angle"])
-        abdAstats.getMovStat(timewindow,framerate)
-        
-        flex=Kinematics()
-        flex.getMotionNonCorView(k.RElbow,k.RShoulder,k.Frames,framerate)
-        flexAstats = Stats(flex.motion["angle"])
-        flexAstats.getMovStat(timewindow,framerate)
-        
+    
+    if (subjectname[13]=="R"):
+        if (subjectname[15]=="A"):
+            abd=Kinematics()
+            abd.getMotionCorView(k.RElbow,k.RShoulder,k.MidHip,k.Neck,k.Frames,framerate)
+            abdAstats = Stats(abd.motion["angle"])
+            abdAstats.getMovStat(timewindow,framerate)
+        elif(subjectname[15]=="L"):
+            abd=Kinematics()
+            abd.getMotionNonCorView(k.RElbow,k.RShoulder,k.Frames,framerate)
+            abdAstats = Stats(abd.motion["angle"])
+            abdAstats.getMovStat(timewindow,framerate)
         
     elif (subjectname[13]=="L"):
-        y.append(1)
-        abd=Kinematics()
-        abd.getMotionCorView(k.LElbow,k.LShoulder,k.MidHip,k.Neck,k.Frames,framerate)
-        abdAstats = Stats(abd.motion["angle"])
-        abdAstats.getMovStat(timewindow,framerate)
-        
-        flex=Kinematics()
-        flex.getMotionNonCorView(k.LElbow,k.LShoulder,k.Frames,framerate)
-        flexAstats = Stats(flex.motion["angle"])
-        flexAstats.getMovStat(timewindow,framerate)
-     
+        if (subjectname[15]=="A"):
+            abd=Kinematics()
+            abd.getMotionCorView(k.LElbow,k.LShoulder,k.MidHip,k.Neck,k.Frames,framerate)
+            abdAstats = Stats(abd.motion["angle"])
+            abdAstats.getMovStat(timewindow,framerate)
+        elif(subjectname[15]=="L"):
+            abd=Kinematics()
+            abd.getMotionNonCorView(k.LElbow,k.LShoulder,k.Frames,framerate)
+            abdAstats = Stats(abd.motion["angle"])
+            abdAstats.getMovStat(timewindow,framerate)
+    
     #Kinematics features
-    p=Plots.getMyPlot(1,"Abduction","Angle","Frames","Degree",subjectname,abd.motion["time"][300:len(abd.motion["time"])-300],abd.motion["angle"][300:len(abd.motion["time"])-300],'k-')
-    p=Plots.getMyPlot(2,"Flexion","Angle","Frames","Degree",subjectname,abd.motion["time"][300:len(flex.motion["time"])-300],flex.motion["angle"][300:len(flex.motion["time"])-300],'k-')
-
-    featureSetName = ["abdAmax","abdAmin","abdAavg","abdAstd","abdAvar"]
+    p=Plots.getMyPlot(i,"Abduction","Angle","Frames","Degree",subjectname,abd.motion["time"][300:len(abd.motion["time"])-300],abd.motion["angle"][300:len(abd.motion["time"])-300],'k-')
+    
+    featureName = ["abdAmax","abdAmin","abdAavg","abdAstd","abdAvar"]
     featureSet = [abdAstats.data["max"],abdAstats.data["min"],abdAstats.data["avg"],abdAstats.data["std"],abdAstats.data["var"]]
               #flexAstats.data["max"],flexAstats.data["min"],flexAstats.data["avg"],flexAstats.data["std"],flexAstats.data["var"]]
     X.append(featureSet)
@@ -139,17 +120,15 @@ classifiers = {
 n_classifiers = len(classifiers)
 
 with open('report.txt','a+') as f:
-    f.write("Feature Set:")
-    f.write('\n')
-    for n in range(0,len(featureSetName)):
+    f.write("No Cross Validation\n")
+    f.write("Feature Set:\n")
+    for n in range(0,len(featureName)):
         f.write(featureSetName[n])
         f.write(",")
-    f.write('\n')
-    f.write('\n')
-        
-    for index, (name, classifier) in enumerate(classifiers.items()):
+    f.write('\n\n')
+    
+    for index, (name, classifier) in enumerate(classifiers.items()):      
         classifier.fit(X, y)
-
         y_pred = classifier.predict(X)
         accuracy = accuracy_score(y, y_pred)
         report = classification_report(y,y_pred)
@@ -158,5 +137,25 @@ with open('report.txt','a+') as f:
         f.write('\n')
         f.write(classification_report(y,y_pred))
         f.write('\n')
-    f.write('The end of this Trial')
+    f.write('The end of this trial\n')
+
+    
+from sklearn.model_selection import cross_val_score
+
+with open('report.txt','a+') as f:
+    f.write("Cross Validation\n")
+    f.write("Feature Set:\n")
+    for n in range(0,len(featureName)):
+        f.write(featureSetName[n])
+        f.write(",")
+    f.write('\n\n')
+    
+    for idx, (nm, clf) in enumerate(classifiers.items()):
+        scores=cross_val_score(clf,X,y, cv=10)
+        print("%0.2f accuracy with a standard deviation of %0.2f" % (scores.mean(), scores.std()))
+        f.write("%0.2f accuracy with a standard deviation of %0.2f" % (scores.mean(), scores.std()))
+        f.write('\n')
+
+    f.write('The end of this trial')
     f.write('\n')
+    
