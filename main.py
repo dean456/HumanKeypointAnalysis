@@ -1,4 +1,5 @@
 import os
+import math
 import numpy as np
 import matplotlib.pyplot as plt
 from openposeio import OpenposeIO, Keypoints
@@ -8,57 +9,122 @@ import platform
 """
 #Original videofolder: collect videonames
 #videopath="/media/public/data/shoulderpain/video/"
-datapath="/media/public/data/shoulderpain/video"
-op = OpenposeIO(datapath,"jsons") #default json folder is videoname/jsons if no input
+datapath="/media/kang/Transcend/001_007" #1
+op = OpenposeIO(datapath,"jsons")
+imagefolder="images"
+if not os.path.isdir(imagefolder):
+    os.mkdir(imagefolder)
+#default json folder is videoname/jsons if no input
 framerate=30 # 30Hz
 timewindow=30
 
-X=[]
-y=[]
+X=[] # featureSet
+y=[] # targetSet
 
 for i in range(0,len(op.folders)):
-       
+    #Mark group #2
     subjectname=op.folders[i]
-    print(subjectname)
-    k=op.extractKeypoints(subjectname)
-    if (subjectname[0]=="A"):
+    tag = subjectname.split("_")
+    group =tag[2][1]
+    #pid = tag[0]
+    #examdate = tag[1]
+    #side = tag[2]
+    #view = tag[3]
+    #load = tag[4]
+    print(tag)
+   
+    if (group=="1"):
+        y.append(0) # control
+    elif (group=="2"):
         y.append(1)
-    elif (subjectname[0]=="R"):
-        y.append(2)
-    elif (subjectname[0]=="H"):
-        y.append(0)
     
-    if (subjectname[13]=="R"):
-        if (subjectname[15]=="A"):
-            abd=Kinematics()
+    #FeatureSet #3 
+    k=op.extractKeypoints(subjectname) #keypoints
+    hip=[]
+    hip=Kinematics()
+    hip.getMotionCorView(k.Neck,k.MidHip,k.LKnee,k.MidHip,k.Frames,framerate) # k1: distal k2: orgin k3:distal. k4:origin
+    hipAstats = Stats(hip.motion["angle"])
+    hipAstats.getMovStat(timewindow,framerate)    
+    p=Plots.getMyPlot(1,imagefolder,"HipFlexion","Angle","Time","Degrees",subjectname,hip.motion["time"],hip.motion["angle"],'k-') #red "r-"
+    
+    hipDstats = Stats(hip.motion["distance"])
+    hipDstats.getMovStat(timewindow,framerate)
+    p=Plots.getMyPlot(1,imagefolder,"Trunk","Distance","Time","Distance",subjectname,hip.motion["time"],hip.motion["distance"],'k-')
+    
+    hipAAstats = Stats(hip.motion["angularAcc"])
+    hipAAstats.getMovStat(90,framerate)
+    p=Plots.getMyPlot(1,imagefolder,"HipFlex","AngularAcc","Time","N",subjectname,hip.motion["time"],hip.motion["angularAcc"],'k-')
+    
+    """
+    if (side=="R"):
+        if (view=="AP"):
+            abd=Kinemiatics()
             abd.getMotionCorView(k.RElbow,k.RShoulder,k.MidHip,k.Neck,k.Frames,framerate)
             abdAstats = Stats(abd.motion["angle"])
             abdAstats.getMovStat(timewindow,framerate)
-        elif(subjectname[15]=="L"):
+        elif(view=="LR"):
             abd=Kinematics()
             abd.getMotionNonCorView(k.RElbow,k.RShoulder,k.Frames,framerate)
             abdAstats = Stats(abd.motion["angle"])
             abdAstats.getMovStat(timewindow,framerate)
         
-    elif (subjectname[13]=="L"):
-        if (subjectname[15]=="A"):
+    elif (side=="L"):
+        if (view=="AP"):
             abd=Kinematics()
             abd.getMotionCorView(k.LElbow,k.LShoulder,k.MidHip,k.Neck,k.Frames,framerate)
             abdAstats = Stats(abd.motion["angle"])
             abdAstats.getMovStat(timewindow,framerate)
-        elif(subjectname[15]=="L"):
+        elif(view=="LR"):
             abd=Kinematics()
             abd.getMotionNonCorView(k.LElbow,k.LShoulder,k.Frames,framerate)
             abdAstats = Stats(abd.motion["angle"])
             abdAstats.getMovStat(timewindow,framerate)
-    
+    """
     #Kinematics features
-    p=Plots.getMyPlot(i,"Abduction","Angle","Frames","Degree",subjectname,abd.motion["time"][300:len(abd.motion["time"])-300],abd.motion["angle"][300:len(abd.motion["time"])-300],'k-')
-    
-    featureName = ["abdAmax","abdAmin","abdAavg","abdAstd","abdAvar"]
-    featureSet = [abdAstats.data["max"],abdAstats.data["min"],abdAstats.data["avg"],abdAstats.data["std"],abdAstats.data["var"]]
+    #p=Plots.getMyPlot(i,"Abduction","Angle","Frames","Degree",subjectname,abd.motion["time"][300:len(abd.motion["time"])-300],abd.motion["angle"][300:len(abd.motion["time"])-300],'k-')
+    featureName = ["hipAmax","hipAmin","hipAavg","hipAstd","hipAvar","hipDmax","hipDmin","hipDavg","hipDstd","hipDvar","hipAAmovavg"]
+    featureSet = [hipAstats.data["max"],
+                  #hipAstats.data["min"],
+                  #hipAstats.data["avg"],
+                  #hipAstats.data["std"],
+                  hipAstats.data["var"],
+                  hipDstats.data["max"],
+                  #hipDstats.data["min"],
+                  #hipDstats.data["avg"],
+                  #hipDstats.data["std"],
+                  hipDstats.data["var"],
+                  hipAAstats.movdata["avg"][1],
+                  max(hipAAstats.movdata["max"])
+                 ]
               #flexAstats.data["max"],flexAstats.data["min"],flexAstats.data["avg"],flexAstats.data["std"],flexAstats.data["var"]]
-    X.append(featureSet)
+    isdelete=0
+    # zero filling
+    for i in range(0,len(featureSet)-1):
+        if (math.isinf(featureSet[i])):
+            print(i)
+            print(featureSet[i])
+            featureSet[i] = 0
+            isdelete=1
+        if (math.isnan(featureSet[i])):
+            print(i)
+            print(featureSet[i])
+            featureSet[i] = 0
+            isdelete=1
+        if (featureSet[i]>np.finfo(np.float64).max):
+            print(i)
+            print(featureSet[i])
+            featureSet[i] = 0
+            isdelete=1
+        if (featureSet[i]<np.finfo(np.float64).min):
+            print(i)
+            print(featureSet[i])
+            featureSet[i] = 0
+            isdelete=1
+
+    if(isdelete==1):
+        del y[-1]
+    else:
+        X.append(featureSet)
 
 X= np.reshape(X,[len(op.folders),len(featureSet)])
 
@@ -123,7 +189,7 @@ with open('report.txt','a+') as f:
     f.write("No Cross Validation\n")
     f.write("Feature Set:\n")
     for n in range(0,len(featureName)):
-        f.write(featureSetName[n])
+        f.write(featureName[n])
         f.write(",")
     f.write('\n\n')
     
@@ -146,14 +212,14 @@ with open('report.txt','a+') as f:
     f.write("Cross Validation\n")
     f.write("Feature Set:\n")
     for n in range(0,len(featureName)):
-        f.write(featureSetName[n])
+        f.write(featureName[n])
         f.write(",")
     f.write('\n\n')
     
-    for idx, (nm, clf) in enumerate(classifiers.items()):
+    for idx, (name, clf) in enumerate(classifiers.items()):
         scores=cross_val_score(clf,X,y, cv=10)
-        print("%0.2f accuracy with a standard deviation of %0.2f" % (scores.mean(), scores.std()))
-        f.write("%0.2f accuracy with a standard deviation of %0.2f" % (scores.mean(), scores.std()))
+        print("Accuracy for %s: %0.2f with a standard deviation of %0.2f (cross-validation)" % (name, scores.mean(), scores.std()))
+        f.write("Accuracy for %s: %0.2f with a standard deviation of %0.2f (cross-validation)" % (name, scores.mean(), scores.std()))
         f.write('\n')
 
     f.write('The end of this trial')
