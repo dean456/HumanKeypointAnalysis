@@ -1,2 +1,2 @@
 # HumanKeypointAnalysis
-A tool gallery for human keypoint analysis
+A tool for human keypoint analysis
